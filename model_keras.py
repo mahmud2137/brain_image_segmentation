@@ -18,6 +18,8 @@ import h5py
 from utils import load_nifti
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 def load_sample_2d(df, n, input_shape, output_shape):
     """
@@ -158,14 +160,22 @@ if __name__ == '__main__':
 
     X_train, y_train = load_sample_2d(df_train, 3, input_shape=[80,80], output_shape=[80,80])
     print(X_train.shape)
-    input_shape = (8,80,2)
+    y_train = to_categorical(y_train)
+    input_shape = X_train.shape[1:]
+    print(input_shape)
     input_layer = Input(shape=input_shape)
     segnet = SegmentNet()
     seg_model = Model(inputs=input_layer, outputs=segnet(input_layer))
     seg_model.summary()
-    
+    seg_model.compile(optimizer='adam', loss='categorical_crossentropy')
+    # seg_model.fit(X_train, y_train,
+    #                 epochs=100)
 
-
-
-
-
+    def data_gen(data, batch_size, input_shape=[80,80], output_shape=[80,80]):
+        while True: 
+            X, y = load_sample_2d(data, batch_size, input_shape, output_shape)
+            y = to_categorical(y)
+            yield X,y
+    batch_size = 30
+    hist = seg_model.fit_generator(data_gen(df_train, batch_size), steps_per_epoch=10, epochs=100, verbose = 2)
+    seg_model.save_weights("model_weights/model_2d.h5")
