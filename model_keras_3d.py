@@ -16,10 +16,11 @@ import json
 import pandas as pd
 from functools import partial
 import h5py
-from utils import load_nifti, load_sample, image_to_patches
+from utils import load_nifti, load_sample, image_to_patches, patches_to_image
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import nibabel as nib
 os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 
@@ -114,7 +115,11 @@ if __name__ == '__main__':
 
     img_patches = image_to_patches(img, patch_shape)
     lbl_patches = image_to_patches(lbl, patch_shape)
-    
+
+    img_recon = patches_to_image(img_patches, img_shape=img.shape)
+
+
+
     X_train, y_train = load_sample(df_train, 3, input_shape=[32,32,32], output_shape=[32,32,32])
     print(X_train.shape)
     y_train = to_categorical(y_train)
@@ -139,10 +144,28 @@ if __name__ == '__main__':
     # hist = seg_model.fit_generator(data_gen(df_train, batch_size), steps_per_epoch=10, epochs=100, verbose = 2)
     # seg_model.save_weights("model_weights/model_3d.h5")
     seg_model.load_weights("model_weights/model_3d.h5")
-    pred = seg_model.predict(X_train)[-1]
-    pred_arg = np.argmax(pred[2], axis=3)
-    plt.imshow(pred_arg[17,:,:])
+
+    pred = seg_model.predict(img_patches)[-1]
+    pred_arg = np.argmax(pred, axis=4)
+
+    pred_whole_label = patches_to_image(pred_arg, img_shape=img.shape)
+    
+    plt.figure(figsize=(15,12))
+    plt.imshow(pred_whole_label[115,:,:])
+    plt.savefig('prediction.jpg')
     plt.show()
+    
+
+    plt.figure(figsize=(15,12))
+    plt.imshow(img[115,:,:,0])
+    plt.savefig('mri_image.jpg')
+    plt.show()
+
+    plt.figure(figsize=(15,12))
+    plt.imshow(lbl[115,:,:])
+    plt.savefig('true_label.jpg')
+    plt.show()
+    
     y_t = np.argmax(y_train[2], axis=3)
     plt.imshow(y_t[17,:,:])
     plt.show()

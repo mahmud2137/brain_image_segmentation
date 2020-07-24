@@ -112,7 +112,29 @@ def image_to_patches(img, patch_shape):
 
     return img_patches
 
-
+def patches_to_image(patches, img_shape):
+    """
+    Make Whole image from elementary patches
+    Parameters:
+    ------------
+    patches: (patches, xlen, ylen, zlen, n_channels) np.ndarray
+        extracted patches in array.
+    img_shape: (xlen, ylen, zlen, n_channels) np.ndarray
+        whole Image shape in every dimensions
+    Image shape must be whole multiple of the patch shape in every dimension
+    """
+    n_patches = np.array(img_shape[:3])//np.array(patches.shape[1:4])
+    a_i = np.array([])
+    for i in range(n_patches[0]):
+        a_j = np.array([])
+        for j in range(n_patches[1]):
+            a_k = np.array([])
+            for k in range(n_patches[2]):
+                b = patches[i*n_patches[0]*n_patches[1]+j*n_patches[1]+k]
+                a_k = np.dstack((a_k, b)) if a_k.size else b
+            a_j = np.hstack((a_j, a_k)) if a_j.size else a_k
+        a_i = np.vstack((a_i, a_j)) if a_i.size else a_j
+    return a_i
 
 def crop_patch(image, center, shape):
     """
